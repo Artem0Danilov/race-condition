@@ -13,16 +13,18 @@ std::mutex vectorMutex;
 // Класс для генерации чисел и добавления их в глобальный вектор
 class Generator {
 public:
-    void operator()() {
+    void generate() {
         int number = 0;  // Начальное число
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));  // Пауза 100 миллисекунд
 
-            // Явный захват мьютекса
-            vectorMutex.lock();
-            globalVector.push_back(number++);
-            std::cout << "Generated: " << number - 1 << std::endl;  // Выводим сгенерированное число
-            vectorMutex.unlock();  // Освобождение мьютекса
+            {
+                vectorMutex.lock();
+                globalVector.push_back(number++);
+                vectorMutex.unlock();
+                
+                std::cout << "Generated: " << number - 1 << std::endl;  // Выводим сгенерированное число 
+            }
         }
     }
 };
@@ -30,22 +32,23 @@ public:
 // Класс для потребления чисел из глобального вектора
 class Consumer {
 public:
-    void operator()(int consumerId) {
+    void consume(int consumerId) {
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(300));  // Пауза 300 миллисекунд
 
-            // Явный захват мьютекса
-            vectorMutex.lock();
+            {
+                
+                if (!globalVector.empty()) {
+                    int number = globalVector.front();  // Берем первое число
 
-            if (!globalVector.empty()) {
-                int number = globalVector.front();  // Берем первое число
-                globalVector.erase(globalVector.begin());  // Удаляем первое число из вектора
+                    vectorMutex.lock();
+                    globalVector.erase(globalVector.begin());  // Удаляем первое число из вектора
+                    vectorMutex.unlock();
 
-                // Обрабатываем и выводим его
-                std::cout << "Consumer " << consumerId << " consumed and processed: " << number << std::endl;
+                    // Обрабатываем и выводим его
+                    std::cout << "Consumer " << consumerId << " consumed and processed: " << number << std::endl;
+                }
             }
-
-            vectorMutex.unlock();  // Освобождение мьютекса
         }
     }
 };
@@ -55,10 +58,10 @@ int main() {
     Consumer consumer1, consumer2, consumer3;  // Создаем 3 объекта потребителей
 
     // Создаем потоки для генератора и потребителей
-    std::thread generatorThread(generator);
-    std::thread consumerThread1(consumer1, 1);  // Потребитель 1
-    std::thread consumerThread2(consumer2, 2);  // Потребитель 2
-    std::thread consumerThread3(consumer3, 3);  // Потребитель 3
+    std::thread generatorThread(&Generator::generate, &generator);
+    std::thread consumerThread1(&Consumer::consume, &consumer1, 1);  // Потребитель 1
+    std::thread consumerThread2(&Consumer::consume, &consumer2, 2);  // Потребитель 2
+    std::thread consumerThread3(&Consumer::consume, &consumer3, 3);  // Потребитель 3
 
     // Ожидаем завершения потоков (хотя в данном случае они будут работать бесконечно)
     generatorThread.join();
