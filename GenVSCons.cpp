@@ -13,9 +13,10 @@ public:
         int counter = 0;
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            std::lock_guard<std::mutex> lock(mtx);
+            mtx.lock();
             numbers.push_back(counter++);
             std::cout << "Generator added: " << counter - 1 << std::endl;
+            mtx.unlock();
         }
     }
 };
@@ -25,12 +26,13 @@ public:
     void run() {
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(300));
-            std::lock_guard<std::mutex> lock(mtx);
+            mtx.lock();
             if (!numbers.empty()) {
                 int num = numbers.front();
                 numbers.erase(numbers.begin());
                 std::cout << "Consumer consumed: " << num << std::endl;
             }
+            mtx.unlock();
         }
     }
 };
