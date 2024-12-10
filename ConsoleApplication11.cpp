@@ -18,10 +18,11 @@ public:
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));  // Пауза 100 миллисекунд
 
-            // Добавление числа в вектор с синхронизацией
-            std::lock_guard<std::mutex> lock(vectorMutex); // Защита от состояния гонки
+            // Явный захват мьютекса
+            vectorMutex.lock();
             globalVector.push_back(number++);
             std::cout << "Generated: " << number - 1 << std::endl;  // Выводим сгенерированное число
+            vectorMutex.unlock();  // Освобождение мьютекса
         }
     }
 };
@@ -33,7 +34,8 @@ public:
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(300));  // Пауза 300 миллисекунд
 
-            std::lock_guard<std::mutex> lock(vectorMutex); // Защита от состояния гонки
+            // Явный захват мьютекса
+            vectorMutex.lock();
 
             if (!globalVector.empty()) {
                 int number = globalVector.front();  // Берем первое число
@@ -42,6 +44,8 @@ public:
                 // Обрабатываем и выводим его
                 std::cout << "Consumer " << consumerId << " consumed and processed: " << number << std::endl;
             }
+
+            vectorMutex.unlock();  // Освобождение мьютекса
         }
     }
 };
