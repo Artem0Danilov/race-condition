@@ -15,8 +15,8 @@ public:
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             mtx.lock();
             numbers.push_back(counter++);
-            std::cout << "Generator added: " << counter - 1 << std::endl;
             mtx.unlock();
+            std::cout << "Generator added: " << counter - 1 << std::endl;
         }
     }
 };
@@ -30,9 +30,9 @@ public:
             if (!numbers.empty()) {
                 int num = numbers.front();
                 numbers.erase(numbers.begin());
+                mtx.unlock();
                 std::cout << "Consumer consumed: " << num << std::endl;
             }
-            mtx.unlock();
         }
     }
 };
